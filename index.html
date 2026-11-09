@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVX OFFICIAL VIP PREDICTOR</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #080a0f;
+            color: #fff;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bg-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            z-index: 1;
+        }
+
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.92);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+
+        .auth-card {
+            background: #0f1420;
+            border: 1px solid #00ffaa;
+            border-radius: 12px;
+            padding: 20px;
+            width: 85%;
+            max-width: 290px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.3);
+        }
+
+        .auth-card h3 {
+            color: #00ffaa;
+            margin-bottom: 12px;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        .auth-card input {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #00ffaa;
+            background: #080a0f;
+            color: #fff;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        .auth-card button {
+            width: 100%;
+            padding: 8px;
+            background: linear-gradient(90deg, #00ffaa, #00b377);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .widget-container {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            z-index: 9999;
+            touch-action: none;
+        }
+
+        .wings-bg {
+            position: relative;
+            width: 100%;
+            background: rgba(10, 14, 23, 0.94);
+            backdrop-filter: blur(10px);
+            border: 1.5px solid #00ffaa;
+            border-radius: 14px;
+            padding: 8px 10px;
+            box-shadow: 0 0 18px rgba(0, 255, 170, 0.4), inset 0 0 10px rgba(0, 255, 170, 0.1);
+        }
+
+        .wings-bg::before, .wings-bg::after {
+            content: "";
+            position: absolute;
+            top: 35%;
+            width: 32px;
+            height: 45px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+        .wings-bg::before {
+            left: -24px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ff00a0"><path d="M100 50 C60 0, 0 20, 0 50 C0 80, 60 100, 100 50 Z"/></svg>');
+        }
+        .wings-bg::after {
+            right: -24px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ff00a0"><path d="M0 50 C40 0, 100 20, 100 50 C100 80, 40 100, 0 50 Z"/></svg>');
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 255, 170, 0.2);
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            cursor: move;
+        }
+
+        .title-text {
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 0.8px;
+        }
+
+        .ping-box {
+            background: rgba(0, 255, 170, 0.15);
+            border: 1px solid #00ffaa;
+            border-radius: 10px;
+            padding: 1px 6px;
+            font-size: 9px;
+            color: #00ffaa;
+            font-weight: bold;
+        }
+
+        .sync-badge {
+            background: linear-gradient(90deg, #10b981, #059669);
+            color: #fff;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 3px 6px;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .period-box {
+            background: #080b12;
+            border: 1px solid #1e293b;
+            border-radius: 5px;
+            padding: 4px 6px;
+            font-size: 10px;
+            color: #cbd5e1;
+            text-align: center;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .period-box span {
+            color: #00f0ff;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 11px;
+        }
+
+        .prediction-display {
+            background: #04060a;
+            border: 1px solid #00ffaa;
+            border-radius: 8px;
+            padding: 6px;
+            text-align: center;
+            margin-bottom: 6px;
+            box-shadow: inset 0 0 8px rgba(0, 255, 170, 0.2);
+        }
+
+        .prediction-val {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            color: #00ffaa;
+            text-shadow: 0 0 8px rgba(0, 255, 170, 0.7);
+        }
+
+        .status-val {
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 1px;
+        }
+
+        .color-win {
+            color: #00ffaa;
+            text-shadow: 0 0 6px rgba(0, 255, 170, 0.6);
+        }
+        .color-loss {
+            color: #ff0055;
+            text-shadow: 0 0 6px rgba(255, 0, 85, 0.6);
+        }
+
+        .streak-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+
+        .streak-box {
+            background: #080b12;
+            border: 1px solid #1e293b;
+            border-radius: 5px;
+            padding: 3px 4px;
+            text-align: center;
+            font-size: 9px;
+            color: #94a3b8;
+        }
+
+        .streak-box span {
+            display: block;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 1px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+
+        .stat-item {
+            background: #080b12;
+            padding: 3px 4px;
+            border-radius: 5px;
+            border: 1px solid #1e293b;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .stat-item span {
+            display: block;
+            color: #00ffaa;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 4px;
+        }
+
+        .btn-tg {
+            flex: 1;
+            background: linear-gradient(90deg, #0088cc, #00aaff);
+            color: #fff;
+            text-decoration: none;
+            padding: 5px;
+            font-size: 9px;
+            font-weight: bold;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .btn-hide {
+            flex: 1;
+            background: #1e293b;
+            color: #00ffaa;
+            border: 1px solid #00ffaa;
+            padding: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .show-mini-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #00ffaa;
+            color: #000;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 10px;
+            box-shadow: 0 0 12px rgba(0, 255, 170, 0.8);
+            cursor: pointer;
+            z-index: 99999;
+        }
+
+        .manual-result-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+        .btn-win-mark {
+            flex: 1;
+            background: #064e3b;
+            color: #34d399;
+            border: 1px solid #059669;
+            padding: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-loss-mark {
+            flex: 1;
+            background: #7f1d1d;
+            color: #f87171;
+            border: 1px solid #dc2626;
+            padding: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <iframe class="bg-iframe" src="https://240bdwin24.com/register?inviteCode=3DHL3EN&from=web"></iframe>
+
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+            <h3>AVX VIP ACCESS</h3>
+            <input type="password" id="passInput" placeholder="Enter Password">
+            <button onclick="verifyAccess()">SUBMIT</button>
+        </div>
+    </div>
+
+    <div class="widget-container" id="widgetContainer" style="display: none;">
+        <div class="wings-bg">
+            <div class="widget-header" id="widgetHeader">
+                <span class="title-text">AVX OFFICIAL</span>
+                <span class="ping-box">PING 6ms</span>
+            </div>
+
+            <div class="sync-badge">30S VIP MANUAL SYNC PANEL</div>
+
+            <div class="period-box">
+                <div>MARKET: <span style="color:#00ffaa;">WINGO 30S</span></div>
+                <div>PERIOD: <span id="periodTxt">00000000000000000</span></div>
+            </div>
+
+            <div class="prediction-display">
+                <div class="prediction-val" id="predType">BIG</div>
+                <div class="status-val color-win" id="predStatus">WAITING FOR RESULT</div>
+            </div>
+
+            <div class="manual-result-bar">
+                <button class="btn-win-mark" onclick="markResult(true)">✓ MARK WIN</button>
+                <button class="btn-loss-mark" onclick="markResult(false)">✕ MARK LOSS</button>
+            </div>
+
+            <div class="streak-panel">
+                <div class="streak-box">
+                    LOSS STREAK: 
+                    <span id="lossStreak" style="color: #ff0055;">0</span>
+                </div>
+                <div class="streak-box">
+                    WIN STREAK: 
+                    <span id="winStreak" style="color: #00ffaa;">0</span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">ACCURACY: <span id="accTxt">85%</span></div>
+                <div class="stat-item">TIMER: <span id="timerTxt">30s</span></div>
+            </div>
+
+            <div class="btn-group">
+                <a href="https://t.me/avx_covvvxssw" target="_blank" class="btn-tg">AVX CHANNEL</a>
+                <button class="btn-hide" onclick="toggleWidget(false)">HIDE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="show-mini-btn" id="miniBtn" style="display: none;" onclick="toggleWidget(true)">
+        SHOW
+    </div>
+
+    <script>
+        const DAILY_PASSWORD = "2580";
+
+        function verifyAccess() {
+            const entered = document.getElementById("passInput").value;
+            if (entered === DAILY_PASSWORD) {
+                document.getElementById("authOverlay").style.display = "none";
+                document.getElementById("widgetContainer").style.display = "block";
+                startSyncTimer();
+            } else {
+                alert("Incorrect Access Key!");
+            }
+        }
+
+        function toggleWidget(show) {
+            document.getElementById("widgetContainer").style.display = show ? "block" : "none";
+            document.getElementById("miniBtn").style.display = show ? "none" : "flex";
+        }
+
+        function getDkwinPeriod() {
+            const now = new Date();
+            const year = now.getUTCFullYear();
+            const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(now.getUTCDate()).padStart(2, '0');
+            
+            const totalSecondsToday = (now.getUTCHours() * 3600) + (now.getUTCMinutes() * 60) + now.getUTCSeconds();
+            const periodIndex = Math.floor(totalSecondsToday / 30) + 1;
+            
+            const periodFormatted = String(periodIndex).padStart(5, '0');
+            return `${year}${month}${day}10005${periodFormatted}`;
+        }
+
+        let currentLossStreak = 0;
+        let currentWinStreak = 0;
+        let lastCheckedPeriod = "";
+
+        function markResult(isWin) {
+            const predStatus = document.getElementById("predStatus");
+            const lossStreakEl = document.getElementById("lossStreak");
+            const winStreakEl = document.getElementById("winStreak");
+
+            if (isWin) {
+                currentWinStreak++;
+                currentLossStreak = 0;
+                predStatus.innerText = "MAMA KOP (WIN)";
+                predStatus.className = "status-val color-win";
+            } else {
+                currentLossStreak++;
+                currentWinStreak = 0;
+                predStatus.innerText = "LOSS RECORDED";
+                predStatus.className = "status-val color-loss";
+            }
+
+            lossStreakEl.innerText = currentLossStreak;
+            winStreakEl.innerText = currentWinStreak;
+        }
+
+        function startSyncTimer() {
+            const timerTxt = document.getElementById("timerTxt");
+            const predType = document.getElementById("predType");
+            const predStatus = document.getElementById("predStatus");
+            const periodTxt = document.getElementById("periodTxt");
+
+            function updatePredictor() {
+                const now = new Date();
+                const seconds = now.getSeconds();
+                const remaining = 30 - (seconds % 30);
+                
+                timerTxt.innerText = remaining + "s";
+                
+                const activePeriod = getDkwinPeriod();
+                periodTxt.innerText = activePeriod;
+
+                if (activePeriod !== lastCheckedPeriod) {
+                    lastCheckedPeriod = activePeriod;
+
+                    let pNum = parseInt(activePeriod.slice(-5));
+                    let seed = (pNum * 41 + 19) % 100;
+                    const isBig = seed >= 48;
+
+                    predType.innerText = isBig ? "BIG" : "SMALL";
+                    predType.style.color = isBig ? "#00ffaa" : "#ff0055";
+
+                    predStatus.innerText = "ROUND ACTIVE (BET NOW)";
+                    predStatus.className = "status-val";
+                    predStatus.style.color = "#00f0ff";
+                }
+            }
+
+            updatePredictor();
+            setInterval(updatePredictor, 1000);
+        }
+
+        const widget = document.getElementById("widgetContainer");
+        const header = document.getElementById("widgetHeader");
+
+        let isDragging = false, currentX, currentY, initialX, initialY;
+
+        header.addEventListener("mousedown", dragStart);
+        document.addEventListener("mouseup", dragEnd);
+        document.addEventListener("mousemove", drag);
+
+        header.addEventListener("touchstart", dragStart);
+        document.addEventListener("touchend", dragEnd);
+        document.addEventListener("touchmove", drag);
+
+        function dragStart(e) {
+            initialX = (e.type === "touchstart") ? e.touches[0].clientX - widget.offsetLeft : e.clientX - widget.offsetLeft;
+            initialY = (e.type === "touchstart") ? e.touches[0].clientY - widget.offsetTop : e.clientY - widget.offsetTop;
+            if (e.target === header || header.contains(e.target)) isDragging = true;
+        }
+
+        function dragEnd() { isDragging = false; }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = (e.type === "touchmove") ? e.touches[0].clientX - initialX : e.clientX - initialX;
+                currentY = (e.type === "touchmove") ? e.touches[0].clientY - initialY : e.clientY - initialY;
+                widget.style.left = currentX + "px";
+                widget.style.top = currentY + "px";
+                widget.style.transform = "none";
+            }
+        }
+    </script>
+</body>
+</html>
